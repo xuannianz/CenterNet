@@ -33,6 +33,19 @@ def get_affine_transform(center,
                          output_size,
                          shift=np.array([0, 0], dtype=np.float32),
                          inv=0):
+    """
+
+    Args:
+        center: 原图的中心点坐标
+        scale: 原图最大边长
+        rot: 旋转弧度
+        output_size: 输出图片的大小
+        shift:
+        inv: 变换的方向
+
+    Returns:
+
+    """
     if not isinstance(scale, np.ndarray) and not isinstance(scale, list):
         scale = np.array([scale, scale], dtype=np.float32)
 
@@ -139,12 +152,17 @@ def draw_umich_gaussian(heatmap, center, radius, k=1):
 
     height, width = heatmap.shape[0:2]
 
+    # left 表示中心点到 masked 区域最左边的距离
+    # right 表示中心点到 masked 区域最右边的距离
     left, right = min(x, radius), min(width - x, radius + 1)
+    # top 表示中心点到 masked 区域最上边的距离
+    # bottom 表示中心点到 masked 区域最下边的距离
     top, bottom = min(y, radius), min(height - y, radius + 1)
 
     masked_heatmap = heatmap[y - top:y + bottom, x - left:x + right]
     masked_gaussian = gaussian[radius - top:radius + bottom, radius - left:radius + right]
     if min(masked_gaussian.shape) > 0 and min(masked_heatmap.shape) > 0:  # TODO debug
+        # 这里就是同一个类的多个目标的高斯核发生重叠取最大值
         np.maximum(masked_heatmap, masked_gaussian * k, out=masked_heatmap)
     return heatmap
 

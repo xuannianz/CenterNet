@@ -12,7 +12,18 @@ def _sigmoid(x):
 
 
 def _gather_feat(feat, ind, mask=None):
+    """
+
+    Args:
+        feat: (b, fh * fw, x), 对 wh 的 feat 来说 x = 2
+        ind: (b, num_instances)
+        mask:
+
+    Returns:
+        feat: (b, num_instances, x)
+    """
     dim = feat.size(2)
+    # unsqueeze 后变成 (b, num_instances, 1), expand 之后变成 (b, num_instances, dim)
     ind = ind.unsqueeze(2).expand(ind.size(0), ind.size(1), dim)
     feat = feat.gather(1, ind)
     if mask is not None:
