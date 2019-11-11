@@ -10,7 +10,7 @@ from __future__ import print_function
 
 import torch
 import torch.nn as nn
-from .utils import _tranpose_and_gather_feat
+from models.utils import _tranpose_and_gather_feat
 import torch.nn.functional as F
 
 
@@ -58,8 +58,8 @@ def _neg_loss(pred, gt):
 
     loss = 0
 
-    pos_loss = torch.log(pred) * torch.pow(1 - pred, 2) * pos_inds
-    neg_loss = torch.log(1 - pred) * torch.pow(pred, 2) * neg_weights * neg_inds
+    pos_loss = torch.log(torch.clamp(pred, 1e-7, 1.)) * torch.pow(1 - pred, 2) * pos_inds
+    neg_loss = torch.log(torch.clamp(1 - pred, 1e-7, 1.)) * torch.pow(pred, 2) * neg_weights * neg_inds
 
     num_pos = pos_inds.float().sum()
     pos_loss = pos_loss.sum()
@@ -257,3 +257,26 @@ def compute_rot_loss(output, target_bin, target_res, mask):
             valid_output2[:, 7], torch.cos(valid_target_res2[:, 1]))
         loss_res += loss_sin2 + loss_cos2
     return loss_bin1 + loss_bin2 + loss_res
+
+
+if __name__ == '__main__':
+    import numpy as np
+
+    hm_pred = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/hm_pred.npy')
+    hm_true = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/hm_true.npy')
+    focal_loss = FocalLoss()
+    print(focal_loss(torch.tensor(hm_pred), torch.tensor(hm_true)))
+
+    wh_pred = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/wh_pred.npy')
+    wh_true = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/wh_true.npy')
+    reg_pred = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/reg_pred.npy')
+    reg_true = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/reg_true.npy')
+    reg_mask = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/reg_mask.npy')
+    indices = np.load('/home/adam/workspace/github/xuannianz/keras-CenterNet/debug/1106/indices.npy').astype(np.int64)
+
+    wh_pred = np.transpose(wh_pred, [0, 3, 1, 2])
+    reg_pred = np.transpose(reg_pred, (0, 3, 1, 2))
+    reg_l1_loss = RegL1Loss()
+    print(reg_l1_loss(torch.tensor(wh_pred), torch.tensor(reg_mask), torch.tensor(indices), torch.tensor(wh_true)))
+    print(reg_l1_loss(torch.tensor(reg_pred), torch.tensor(reg_mask), torch.tensor(indices), torch.tensor(reg_true)))
+    print()
