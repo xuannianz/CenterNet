@@ -88,33 +88,26 @@ def affine_transform(pt, t):
 
 def get_3rd_point(a, b):
     direct = a - b
+    # [-direct[1], direct[0]] 就是 direct 顺时针旋转 90°, 且长度与 direct 相等的向量
+    # 返回的结果对应目标图像中的 (0, 0)
     return b + np.array([-direct[1], direct[0]], dtype=np.float32)
 
 
 def get_dir(src_point, rot_rad):
     """
-    绕 (0, 0) 旋转 rot_rad, rot_rad > 0 表示顺时针旋转, rot_rad < 0 则为逆时针旋转
+    src_point 绕 (0, 0) 旋转 rot_rad 后的坐标
+    rot_rad > 0 表示顺时针旋转, rot_rad < 0 则为逆时针旋转
+
     Args:
         src_point:
-        rot_rad:
+        rot_rad: 旋转的弧度
 
     Returns:
 
     """
     sn, cs = np.sin(rot_rad), np.cos(rot_rad)
-
     src_result = [0, 0]
     src_result[0] = src_point[0] * cs - src_point[1] * sn
-    src_result[1] = src_point[0] * sn + src_point[1] * cs
-
-    return src_result
-
-
-def get_dir_2(src_point, rot_rad):
-    sn, cs = np.abs(np.sin(rot_rad)), np.abs(np.cos(rot_rad))
-
-    src_result = [0, 0]
-    src_result[0] = src_point[0] * cs + src_point[1] * sn
     src_result[1] = src_point[0] * sn + src_point[1] * cs
 
     return src_result
