@@ -38,7 +38,7 @@ def get_affine_transform(center,
     Args:
         center: 原图的中心点坐标
         scale: 原图最大边长
-        rot: 旋转弧度
+        rot: 旋转角度
         output_size: 输出图片的大小
         shift:
         inv: 变换的方向
@@ -77,7 +77,7 @@ def get_affine_transform(center,
     else:
         trans = cv2.getAffineTransform(np.float32(src), np.float32(dst))
 
-    return trans
+    return trans, src, dst
 
 
 def affine_transform(pt, t):
@@ -92,10 +92,29 @@ def get_3rd_point(a, b):
 
 
 def get_dir(src_point, rot_rad):
+    """
+    绕 (0, 0) 旋转 rot_rad, rot_rad > 0 表示顺时针旋转, rot_rad < 0 则为逆时针旋转
+    Args:
+        src_point:
+        rot_rad:
+
+    Returns:
+
+    """
     sn, cs = np.sin(rot_rad), np.cos(rot_rad)
 
     src_result = [0, 0]
     src_result[0] = src_point[0] * cs - src_point[1] * sn
+    src_result[1] = src_point[0] * sn + src_point[1] * cs
+
+    return src_result
+
+
+def get_dir_2(src_point, rot_rad):
+    sn, cs = np.abs(np.sin(rot_rad)), np.abs(np.cos(rot_rad))
+
+    src_result = [0, 0]
+    src_result[0] = src_point[0] * cs + src_point[1] * sn
     src_result[1] = src_point[0] * sn + src_point[1] * cs
 
     return src_result
@@ -262,3 +281,60 @@ def color_aug(data_rng, image, eig_val, eig_vec):
     for f in functions:
         f(data_rng, image, gs, gs_mean, 0.4)
     lighting_(data_rng, image, 0.1, eig_val, eig_vec)
+
+
+def test_affine(image, rot_angle=0):
+    h, w = image.shape[:2]
+    src_image = image.copy()
+    dst_h, dst_w = 512, 512
+    center = np.array((w // 2, h // 2))
+    scale = max(h, w)
+    trans_matrix, src, dst = get_affine_transform(center, scale, rot_angle, (512, 512))
+    dst_image = cv2.warpAffine(src_image, trans_matrix, (dst_h, dst_w), flags=cv2.INTER_LINEAR)
+
+    src_image = np.pad(src_image, ((200, 0), (200, 0), (0, 0)), mode='constant')
+    src[:, 0] += 200
+    src[:, 1] += 200
+    for p in src:
+        cv2.circle(src_image, tuple(p.astype(np.int32)), 10, (0, 255, 0), -1)
+    for p in dst:
+        cv2.circle(dst_image, tuple(p.astype(np.int32)), 10, (0, 0, 255), -1)
+    cv2.namedWindow('src_image_{}'.format(rot_angle), cv2.WINDOW_NORMAL)
+    cv2.imshow('src_image_{}'.format(rot_angle), src_image)
+    cv2.namedWindow('dst_image_{}'.format(rot_angle), cv2.WINDOW_NORMAL)
+    cv2.imshow('dst_image_{}'.format(rot_angle), dst_image)
+
+
+if __name__ == '__main__':
+    ##########################################
+    # learn get_dir
+    ##########################################
+    # p1 = (200, 250)
+    # p2 = (400, 250)
+    # p3 = (400, 350)
+    # p4 = (200, 350)
+    # p1_ = get_dir(p1, 0.5236)
+    # p2_ = get_dir(p2, 0.5236)
+    # p3_ = get_dir(p3, 0.5236)
+    # p4_ = get_dir(p4, 0.5236)
+    # p1__ = get_dir_2(p1, 0.5236)
+    # p2__ = get_dir_2(p2, 0.5236)
+    # p3__ = get_dir_2(p3, 0.5236)
+    # p4__ = get_dir_2(p4, 0.5236)
+    # image = np.ones((1000, 1000, 3), dtype=np.uint8) * 255
+    # for p in [p1, p2, p3, p4]:
+    #     cv2.circle(image, p, 10, (0, 255, 0), -1)
+    # for p in [p1_, p2_, p3_, p4_]:
+    #     cv2.circle(image, tuple(map(int, p)), 10, (255, 255, 0), -1)
+    # for p in [p1__, p2__, p3__, p4__]:
+    #     cv2.circle(image, tuple(map(int, p)), 10, (0, 255, 255), -1)
+    # cv2.namedWindow('image', cv2.WINDOW_NORMAL)
+    # cv2.imshow('image', image)
+    # cv2.waitKey(0)
+    #############################################
+    # learn get_affine_transform
+    #############################################
+    image = cv2.imread('data/voc/images/000012.jpg')
+    test_affine(image, 0)
+    test_affine(image, 30)
+    cv2.waitKey(0)
